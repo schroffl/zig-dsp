@@ -1,6 +1,8 @@
 const std = @import("std");
+const util = @import("./util.zig");
 
 pub fn hamming(comptime T: type, N: usize, n: usize) T {
+    comptime util.ensureFloat(T);
     const a0 = 0.54;
     const a1 = 0.46;
 
@@ -8,6 +10,7 @@ pub fn hamming(comptime T: type, N: usize, n: usize) T {
 }
 
 pub fn hann(comptime T: type, N: usize, n: usize) T {
+    comptime util.ensureFloat(T);
     return 0.5 * (1 - std.math.cos(2 * std.math.pi * @intToFloat(T, n) / @intToFloat(T, N - 1)));
 }
 
