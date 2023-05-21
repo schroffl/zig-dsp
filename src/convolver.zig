@@ -43,7 +43,7 @@ pub fn convolve(coeffs: []const f32, samples: []const f32) f32 {
 
     var result: f32 = 0;
 
-    for (samples) |v, i| {
+    for (samples, 0..) |v, i| {
         result += v * coeffs[i];
     }
 
