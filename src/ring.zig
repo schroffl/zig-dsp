@@ -28,15 +28,6 @@ pub fn write(self: *Self, value: f32) void {
     }
 }
 
-pub fn writeMany(self: *Self, values: []const f32) void {
-    if (values.len > self.buffer.len) {
-        const sub = values[values.len - self.buffer.len ..];
-        self.idx = 0;
-        self.len = self.buffer.len;
-        std.mem.copy(f32, self.buffer, sub);
-    }
-}
-
 pub fn copyToSlice(self: Self, slice: []f32) []f32 {
     std.debug.assert(slice.len >= self.len);
 
