@@ -26,14 +26,18 @@ pub fn normalize(comptime T: type, a: []T) void {
     }
 }
 
-pub fn sinc(comptime T: type, N: usize, frequency: T, i: usize) T {
+pub fn sincDiscrete(comptime T: type, N: usize, frequency: T, i: usize) T {
     if (i == (N - 1) / 2) {
         return 1;
     }
 
     const x = @intToFloat(T, i) / @intToFloat(T, N - 1) * 2 - 1;
-    const pi_x = frequency * std.math.pi * x;
 
+    return sinc(T, frequency * x);
+}
+
+pub fn sinc(comptime T: type, x: T) T {
+    const pi_x = std.math.pi * x;
     return std.math.sin(pi_x) / pi_x;
 }
 
@@ -51,27 +55,27 @@ test "normalize" {
     try std.testing.expectEqualSlices(f32, &[_]f32{ 0.5, -1, 1.5 }, buffer3[0..]);
 }
 
-test "sinc" {
+test "sincDiscrete" {
     const N = 91;
     const tolerance = 0.000000001;
 
-    try std.testing.expectApproxEqAbs(@as(f64, 0), sinc(f64, N, 1, 0), tolerance);
-    try std.testing.expectApproxEqAbs(@as(f64, 1), sinc(f64, N, 1, 45), tolerance);
-    try std.testing.expectApproxEqAbs(@as(f64, 0), sinc(f64, N, 1, 90), tolerance);
+    try std.testing.expectApproxEqAbs(@as(f64, 0), sincDiscrete(f64, N, 1, 0), tolerance);
+    try std.testing.expectApproxEqAbs(@as(f64, 1), sincDiscrete(f64, N, 1, 45), tolerance);
+    try std.testing.expectApproxEqAbs(@as(f64, 0), sincDiscrete(f64, N, 1, 90), tolerance);
 
-    try std.testing.expectApproxEqAbs(@as(f64, 0), sinc(f64, N, 2, 0), tolerance);
-    try std.testing.expectApproxEqAbs(@as(f64, 1), sinc(f64, N, 2, 45), tolerance);
-    try std.testing.expectApproxEqAbs(@as(f64, 0), sinc(f64, N, 2, 90), tolerance);
+    try std.testing.expectApproxEqAbs(@as(f64, 0), sincDiscrete(f64, N, 2, 0), tolerance);
+    try std.testing.expectApproxEqAbs(@as(f64, 1), sincDiscrete(f64, N, 2, 45), tolerance);
+    try std.testing.expectApproxEqAbs(@as(f64, 0), sincDiscrete(f64, N, 2, 90), tolerance);
 
     var sum1: f64 = 0;
-    for (0..N) |i| sum1 += sinc(f64, N, 1, i);
+    for (0..N) |i| sum1 += sincDiscrete(f64, N, 1, i);
     try std.testing.expectApproxEqAbs(@as(f64, 53.050), sum1, 0.001);
 
     var sum2: f64 = 0;
-    for (0..N) |i| sum2 += sinc(f64, N, 2, i);
+    for (0..N) |i| sum2 += sincDiscrete(f64, N, 2, i);
     try std.testing.expectApproxEqAbs(@as(f64, 20.317), sum2, 0.001);
 
     var sum3: f64 = 0;
-    for (0..N) |i| sum3 += sinc(f64, N, 3.5, i);
+    for (0..N) |i| sum3 += sincDiscrete(f64, N, 3.5, i);
     try std.testing.expectApproxEqAbs(@as(f64, 12.831), sum3, 0.001);
 }
