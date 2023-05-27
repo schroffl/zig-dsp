@@ -41,6 +41,25 @@ pub fn copyToSlice(self: Self, slice: []f32) []f32 {
     }
 }
 
+pub fn multiSlice(self: Self) MultiSlice {
+    if (self.len < self.buffer.len) {
+        return MultiSlice{
+            .first = self.buffer[0..self.len],
+            .second = &[_]f32{},
+        };
+    } else {
+        return MultiSlice{
+            .first = self.buffer[self.idx..],
+            .second = self.buffer[0..self.idx],
+        };
+    }
+}
+
+pub const MultiSlice = struct {
+    first: []f32,
+    second: []f32,
+};
+
 test {
     const t = std.testing;
     var ally = t.allocator;
