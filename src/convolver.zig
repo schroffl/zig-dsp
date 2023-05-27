@@ -5,6 +5,7 @@ const Self = @This();
 allocator: std.mem.Allocator,
 coeffs: []f32,
 ring: Ring,
+work_mem: []f32,
 
 pub fn init(allocator: std.mem.Allocator, coeffs: []const f32) !Self {
     var cloned = try allocator.dupe(f32, coeffs);
@@ -19,21 +20,20 @@ pub fn init(allocator: std.mem.Allocator, coeffs: []const f32) !Self {
         .allocator = allocator,
         .coeffs = cloned,
         .ring = ring,
+        .work_mem = try allocator.alloc(f32, ring.len),
     };
 }
 
 pub fn deinit(self: *Self) void {
     self.ring.deinit();
+    self.allocator.free(self.work_mem);
     self.allocator.free(self.coeffs);
 }
 
-pub fn process(self: *Self, y: f32) !f32 {
+pub fn process(self: *Self, y: f32) f32 {
     self.ring.write(y);
 
-    var slice = try self.allocator.alloc(f32, self.ring.len);
-    defer self.allocator.free(slice);
-
-    var samples = self.ring.copyToSlice(slice);
+    var samples = self.ring.copyToSlice(self.work_mem);
 
     return convolveSIMD(self.coeffs, samples);
 }
@@ -89,12 +89,12 @@ test {
     var cv = try Self.init(ally, &[_]f32{ 0.5, 1, 1 });
     defer cv.deinit();
 
-    _ = try cv.process(1);
-    _ = try cv.process(2);
-    var result = try cv.process(3);
+    _ = cv.process(1);
+    _ = cv.process(2);
+    var result = cv.process(3);
     try t.expectEqual(@as(f32, 4.5), result);
 
-    result = try cv.process(4);
+    result = cv.process(4);
     try t.expectEqual(@as(f32, 7), result);
 }
 
@@ -122,7 +122,7 @@ test "large signal" {
 
     var result: f32 = 0;
 
-    for (signal) |y| result = try cv.process(y);
+    for (signal) |y| result = cv.process(y);
 
     try t.expectEqual(@as(f32, 277409), result);
 }
