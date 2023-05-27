@@ -21,8 +21,9 @@ pub fn deinit(self: *Self) void {
 }
 
 pub fn process(self: *Self, value: f32) f32 {
-    _ = value;
-    _ = self;
+    const y = self.last();
+    self.add(value);
+    return y;
 }
 
 pub fn add(self: *Self, value: f32) void {
