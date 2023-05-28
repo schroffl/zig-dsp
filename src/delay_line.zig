@@ -1,6 +1,11 @@
 const std = @import("std");
 const Self = @This();
 
+pub const InterpolationMode = enum {
+    none,
+    linear,
+};
+
 allocator: std.mem.Allocator,
 buffer: []f32,
 idx: usize = 0,
@@ -29,6 +34,34 @@ pub fn process(self: *Self, value: f32) f32 {
 pub fn add(self: *Self, value: f32) void {
     self.buffer[self.idx] = value;
     self.idx = (self.idx + 1) % self.buffer.len;
+}
+
+pub fn get(self: Self, pos: f32, interpolation: InterpolationMode) f32 {
+    const len = @intToFloat(f32, self.buffer.len);
+
+    if (pos > len - 1) {
+        @panic("The requested offset is larger than the buffer size of the delay line");
+    }
+
+    const adj_pos = len - pos - 1;
+    const int = @floatToInt(usize, std.math.floor(adj_pos));
+    const frac = adj_pos - @intToFloat(f32, int);
+
+    switch (interpolation) {
+        .none => {
+            const idx = (self.idx + int) % self.buffer.len;
+            return self.buffer[idx];
+        },
+        .linear => {
+            const idx = (self.idx + int) % self.buffer.len;
+            const idx2 = (idx + 1) % self.buffer.len;
+
+            const a = self.buffer[idx];
+            const b = self.buffer[idx2];
+
+            return a * (1 - frac) + frac * b;
+        },
+    }
 }
 
 pub fn last(self: Self) f32 {
@@ -150,4 +183,29 @@ test "shrink" {
 
     try line2.resize(4);
     try std.testing.expectEqual(@as(f32, 7), line2.last());
+}
+
+test "get" {
+    const ally = std.testing.allocator;
+    var line = try Self.init(ally, 5);
+    defer line.deinit();
+
+    line.add(1);
+    line.add(2);
+    line.add(3);
+    line.add(4);
+    line.add(5);
+
+    try std.testing.expectEqual(@as(f32, 5), line.get(0, .none));
+    try std.testing.expectEqual(@as(f32, 4), line.get(1, .none));
+    try std.testing.expectEqual(@as(f32, 3), line.get(2, .none));
+    try std.testing.expectEqual(@as(f32, 2), line.get(3, .none));
+    try std.testing.expectEqual(@as(f32, 1), line.get(4, .none));
+
+    try std.testing.expectEqual(@as(f32, 1.25), line.get(3.75, .linear));
+    try std.testing.expectEqual(@as(f32, 1.5), line.get(3.5, .linear));
+    try std.testing.expectEqual(@as(f32, 2.5), line.get(2.5, .linear));
+    try std.testing.expectEqual(@as(f32, 3.5), line.get(1.5, .linear));
+    try std.testing.expectEqual(@as(f32, 4.5), line.get(0.5, .linear));
+    try std.testing.expectEqual(@as(f32, 5), line.get(0, .linear));
 }
